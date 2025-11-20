@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<prompt>
+  <metadata>
+    <title>Implementar MVP de EcoChef: App de Rescate de Alimentos con AI</title>
+    <phase>1 (MVP Core)</phase>
+    <difficulty>high</difficulty>
+    <estimated_time>3-5 horas</estimated_time>
+    <version>1.0</version>
+    <last_updated>2025-11-20</last_updated>
+    <prerequisites>
+      <prerequisite>Cuenta de Vercel y OpenAI API Key</prerequisite>
+      <prerequisite>Proyecto en NeonDB creado</prerequisite>
+      <prerequisite>Stack Auth configurado en Neon</prerequisite>
+      <prerequisite>Node.js 18+ y pnpm instalado</prerequisite>
+    </prerequisites>
+    <dependencies>
+      <dependency>Next.js 15 (App Router)</dependency>
+      <dependency>Vercel AI SDK</dependency>
+      <dependency>Neon Serverless Driver</dependency>
+      <dependency>Stack Auth</dependency>
+      <dependency>Shadcn UI</dependency>
+      <dependency>Tailwind CSS</dependency>
+      <dependency>Lucide React</dependency>
+    </dependencies>
+  </metadata>
+
+  <thinking_configuration>
+    <claude_extended_thinking>
+      <enabled>true</enabled>
+      <reasoning>
+        Esta tarea implica la integración de múltiples servicios serverless (Neon, Stack Auth, Vercel AI) y lógica de negocio específica (algoritmo de caducidad, prompt engineering para recetas). Requiere decisiones arquitectónicas sobre cómo manejar el estado del usuario y la latencia de la IA.
+      </reasoning>
+      <budget_tokens>15000</budget_tokens>
+      <expected_thinking_depth>
+        Análisis de arquitectura serverless, diseño de schema optimizado para lecturas frecuentes (inventario), estrategia de caching para recetas generadas, y manejo de estados de carga para UX fluida.
+      </expected_thinking_depth>
+    </claude_extended_thinking>
+  </thinking_configuration>
+
+  <context>
+    <project_info>
+      <name>EcoChef</name>
+      <framework>Next.js 15</framework>
+      <status>Greenfield (Inicio de proyecto)</status>
+    </project_info>
+
+    <tech_stack>
+      <frontend>Next.js, Tailwind CSS, Shadcn UI, Framer Motion (para animaciones premium)</frontend>
+      <backend>Next.js Server Actions, Vercel AI SDK</backend>
+      <database>NeonDB (Postgres)</database>
+      <auth>Stack Auth (Native Neon Integration)</auth>
+    </tech_stack>
+
+    <objective>
+      <primary>
+        Desarrollar el MVP de "EcoChef", una aplicación web progresiva (PWA) que ayuda a los usuarios a reducir el desperdicio de alimentos. El usuario ingresa sus ingredientes y la IA genera recetas para usarlos antes de que caduquen.
+      </primary>
+      <success_criteria>
+        <criterion>✅ Autenticación funcional con Stack Auth</criterion>
+        <criterion>✅ Inventario de ingredientes con "Semáforo de Caducidad" visual</criterion>
+        <criterion>✅ Generación de recetas con IA (Vercel AI SDK) basada en inventario</criterion>
+        <criterion>✅ Dashboard de impacto (dinero ahorrado)</criterion>
+        <criterion>✅ UI Premium con diseño vibrante y animaciones</criterion>
+      </success_criteria>
+    </objective>
+  </context>
+
+  <instructions>
+    <step number="1">
+      <title>Inicialización del Proyecto y Configuración de UI</title>
+      <thinking_guidance>
+        Analiza la estructura óptima para una Next.js App Router que usará Shadcn.
+        Define la paleta de colores "Premium" (evita colores default).
+        Planifica la instalación de dependencias clave.
+      </thinking_guidance>
+      <commands>
+        <![CDATA[
+npx create-next-app@latest ecochef --typescript --tailwind --eslint
+cd ecochef
+npx shadcn@latest init
+npx shadcn@latest add button card input badge progress toast dialog scroll-area
+npm install ai @ai-sdk/openai framer-motion lucide-react @neondatabase/serverless
+        ]]>
+      </commands>
+      <validation>
+        <execution_success>
+          ✅ Proyecto creado y corre en localhost:3000
+          ✅ Componentes Shadcn instalados en /components/ui
+        </execution_success>
+      </validation>
+    </step>
+
+    <step number="2">
+      <title>Configuración de Base de Datos y Autenticación (Neon + Stack)</title>
+      <thinking_guidance>
+        Diseña el esquema SQL para:
+        1. Users (manejado por Stack Auth, pero necesitamos referencias locales si aplica)
+        2. Ingredients (id, user_id, name, expiry_date, quantity, status)
+        3. Recipes (id, user_id, title, content, created_at, saved)
+        4. UserStats (user_id, money_saved, food_rescued_count)
+        Configura la conexión segura usando variables de entorno.
+      </thinking_guidance>
+      <action>
+        Configura la conexión a NeonDB y Stack Auth. Crea el archivo `src/lib/db.ts` y el esquema inicial.
+        Implementa el middleware de Stack Auth para proteger rutas `/dashboard`.
+      </action>
+    </step>
+
+    <step number="3">
+      <title>Implementar "Mi Nevera" y Semáforo de Caducidad</title>
+      <thinking_guidance>
+        Diseña el componente `InventoryList`.
+        Lógica del Semáforo:
+        - Rojo: Caduca en &lt; 2 días (Prioridad Alta)
+        - Amarillo: Caduca en 3-5 días (Prioridad Media)
+        - Verde: &gt; 5 días (Prioridad Baja)
+        Debe ser visualmente impactante.
+      </thinking_guidance>
+      <action>
+        Crea `src/components/dashboard/InventoryList.tsx` y `IngredientCard.tsx`.
+        Implementa Server Actions para CRUD de ingredientes.
+        Usa `Badge` de Shadcn con colores dinámicos para el semáforo.
+      </action>
+    </step>
+
+    <step number="4">
+      <title>Implementar "Chef IA Rescatista" (Vercel AI SDK)</title>
+      <thinking_guidance>
+        Diseña el prompt del sistema para la IA:
+        "Eres un Chef experto en sostenibilidad. Tu misión es crear recetas deliciosas usando EXCLUSIVAMENTE los ingredientes que el usuario tiene a punto de caducar (prioridad roja/amarilla). Inventa recetas lógicas. Sé creativo pero realista."
+        Configura `useChat` o `generateText` para la interacción.
+      </thinking_guidance>
+      <action>
+        Crea ruta API `src/app/api/chat/route.ts` configurada con OpenAI.
+        Crea componente `ChefAssistant.tsx` que recibe la lista de ingredientes seleccionados.
+        Implementa la UI de chat/generación con streaming para menor latencia percibida.
+      </action>
+    </step>
+
+    <step number="5">
+      <title>Implementar Impact Tracker y Monetización UI</title>
+      <thinking_guidance>
+        El Impact Tracker debe gamificar la experiencia. "Has ahorrado $X esta semana".
+        La Monetización es Freemium. Muestra features bloqueados (ej: Escaneo de Tickets) con un modal de "Upgrade to Premium".
+      </thinking_guidance>
+      <action>
+        Crea `ImpactDashboard.tsx` con gráficos simples o stats cards.
+        Implementa un `PremiumOverlay` o botón de upgrade que lleve a una página de pricing simulada (o Stripe integration si da tiempo, pero MVP primero).
+      </action>
+    </step>
+  </instructions>
+
+  <validation>
+    <execution_checklist>
+      <item>✅ El usuario puede loguearse/registrarse con Stack Auth</item>
+      <item>✅ Se pueden agregar ingredientes y ver su estado de caducidad (colores correctos)</item>
+      <item>✅ Al seleccionar ingredientes, la IA genera una receta coherente</item>
+      <item>✅ La UI se siente "Premium" (no parece un wireframe básico)</item>
+      <item>✅ Despliegue exitoso en Vercel sin errores de build</item>
+    </execution_checklist>
+  </validation>
+
+  <output_format>
+    <structure>
+      <section name="execution_log">Registro paso a paso de la implementación</section>
+      <section name="verification">Resultados de las pruebas manuales de cada feature</section>
+    </structure>
+  </output_format>
+</prompt>
